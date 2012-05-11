@@ -1,19 +1,22 @@
 package com.example.android;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.google.android.maps.GeoPoint;
+import com.google.android.maps.ItemizedOverlay;
 import com.google.android.maps.MapActivity;
 import com.google.android.maps.MapView;
 import com.google.android.maps.Overlay;
-import com.google.android.maps.Projection;
+import com.google.android.maps.OverlayItem;
 
-import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.util.Log;
 
 public class MapViewSampleActivity extends MapActivity {
+	private static final String TAG = "MapViewSampleActivity";
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -24,9 +27,23 @@ public class MapViewSampleActivity extends MapActivity {
 		mapView.setClickable(true);
 		mapView.setBuiltInZoomControls(true);
 
-		MyOverlay myOverlay = new MyOverlay();
+		MyItemizedOverlay myItemizedOverlay = new MyItemizedOverlay(
+				getResources().getDrawable(R.drawable.ic_launcher));
 		List<Overlay> overlayList = mapView.getOverlays();
-		overlayList.add(myOverlay);
+		overlayList.add(myItemizedOverlay);
+
+		GeoPoint point;
+		OverlayItem item;
+
+		// 東京駅
+		point = new GeoPoint(35681382, 139766084);
+		item = new OverlayItem(point, "", "");
+		myItemizedOverlay.addPoint(item);
+
+		// 京都駅
+		point = new GeoPoint(34985458, 135757755);
+		item = new OverlayItem(point, "", "");
+		myItemizedOverlay.addPoint(item);
 
 		mapView.invalidate();
 	}
@@ -36,34 +53,40 @@ public class MapViewSampleActivity extends MapActivity {
 		return false;
 	}
 
-	private class MyOverlay extends Overlay {
-		private GeoPoint mGeoPoint;
-		public MyOverlay() {
-			mGeoPoint = null;
+	private class MyItemizedOverlay extends ItemizedOverlay<OverlayItem> {
+		private List<OverlayItem> items = new ArrayList<OverlayItem>();
+
+		public MyItemizedOverlay(Drawable defaultMarker) {
+			super(boundCenterBottom(defaultMarker));
+
+			populate();
 		}
 
 		@Override
-		public boolean onTap(GeoPoint p, MapView mapView) {
-			mGeoPoint = p;
-			return super.onTap(p, mapView);
+		protected OverlayItem createItem(int arg0) {
+			return items.get(arg0);
 		}
 
 		@Override
-		public void draw(Canvas canvas, MapView mapView, boolean shadow) {
-			super.draw(canvas, mapView, shadow);
-			if (!shadow) {
-				if (mGeoPoint != null) {
-					Projection projection = mapView.getProjection();
-		            Point point = new Point();
-		            projection.toPixels(mGeoPoint, point);
+		public int size() {
+			return items.size();
+		}
 
-					Paint paint = new Paint();
-					paint.setStyle(Paint.Style.FILL);
-					paint.setARGB(255, 255, 0, 0);
+		public void addPoint(OverlayItem item) {
+			items.add(item);
+			populate();
+		}
 
-					canvas.drawCircle(point.x, point.y, 16, paint);
-				}
-			}
+		public void clear() {
+			items.clear();
+			populate();
+		}
+
+		@Override
+		public boolean onSnapToItem(int x, int y, Point snapPoint,
+				MapView mapView) {
+			Log.d(TAG, "onSnapToItem");
+			return super.onSnapToItem(x, y, snapPoint, mapView);
 		}
 	}
 }
